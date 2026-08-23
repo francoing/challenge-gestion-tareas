@@ -19,9 +19,6 @@ return new class extends Migration
             $table->enum('estado', ['pendiente', 'en_progreso', 'completada'])->default('pendiente');
             $table->foreignId('prioridad_id')->constrained('prioridades')->restrictOnDelete();
             $table->timestamps();
-
-            $table->index('estado');
-            $table->index('fecha_vencimiento');
         });
     }
 
