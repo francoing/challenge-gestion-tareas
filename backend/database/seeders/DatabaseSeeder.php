@@ -15,11 +15,17 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
+        ]);
+
+        // El orden importa: TareaSeeder necesita los catálogos ya sembrados
+        // para resolver prioridad_id y los ids de las etiquetas.
+        $this->call([
+            PrioridadSeeder::class,
+            EtiquetaSeeder::class,
+            TareaSeeder::class,
         ]);
     }
 }
