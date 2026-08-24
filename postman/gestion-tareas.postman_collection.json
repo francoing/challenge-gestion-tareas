@@ -1,0 +1,802 @@
+{
+  "info": {
+    "_postman_id": "b7e2c1a4-9d3f-4a58-8c21-5f6d0e4b7a91",
+    "name": "Gestión de Tareas — API",
+    "description": "Colección para probar el API REST del challenge de gestión de tareas.\n\n**Antes de correr:** levantá el backend con `php artisan serve` y asegurate de que MySQL esté corriendo.\n\n**Orden importa** dentro de la carpeta `Tareas — CRUD`: el POST guarda el `id` en la variable `{{tarea_id}}`, que consumen el GET, PUT, PATCH y DELETE siguientes. Podés correr la colección entera con el Collection Runner.\n\n**Catálogos sembrados por los seeders:**\n- Prioridades: `1=BAJA`, `2=MEDIA`, `3=ALTA`\n- Etiquetas: `1=DEV`, `2=QA`, `3=RRHH`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "tarea_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Catálogos",
+      "description": "Endpoints de solo lectura que alimentan los selects del formulario en el frontend.",
+      "item": [
+        {
+          "name": "GET /prioridades",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/prioridades",
+              "host": ["{{base_url}}"],
+              "path": ["prioridades"]
+            },
+            "description": "Devuelve las tres prioridades del enum: BAJA, MEDIA, ALTA."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const data = pm.response.json().data;",
+                  "pm.test('Devuelve las 3 prioridades', () => {",
+                  "    pm.expect(data).to.be.an('array').with.lengthOf(3);",
+                  "});",
+                  "",
+                  "pm.test('Los valores son BAJA, MEDIA y ALTA', () => {",
+                  "    const valores = data.map(p => p.prioridad);",
+                  "    pm.expect(valores).to.have.members(['BAJA', 'MEDIA', 'ALTA']);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /etiquetas",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/etiquetas",
+              "host": ["{{base_url}}"],
+              "path": ["etiquetas"]
+            },
+            "description": "Devuelve las tres etiquetas del enum: DEV, QA, RRHH."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const data = pm.response.json().data;",
+                  "pm.test('Devuelve las 3 etiquetas', () => {",
+                  "    pm.expect(data).to.be.an('array').with.lengthOf(3);",
+                  "});",
+                  "",
+                  "pm.test('Los valores son DEV, QA y RRHH', () => {",
+                  "    const valores = data.map(e => e.etiqueta);",
+                  "    pm.expect(valores).to.have.members(['DEV', 'QA', 'RRHH']);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tareas — CRUD",
+      "description": "El ciclo completo. Correr en orden: el POST siembra `{{tarea_id}}` y el DELETE lo limpia.",
+      "item": [
+        {
+          "name": "GET /tareas — listar todas",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tareas",
+              "host": ["{{base_url}}"],
+              "path": ["tareas"]
+            },
+            "description": "Lista todas las tareas con su prioridad y etiquetas embebidas (cargadas con eager loading para evitar N+1)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const data = pm.response.json().data;",
+                  "pm.test('Devuelve un array de tareas', () => {",
+                  "    pm.expect(data).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Cada tarea trae prioridad y etiquetas embebidas', () => {",
+                  "    if (data.length === 0) { pm.expect.fail('Sin tareas: corré php artisan db:seed'); }",
+                  "    const t = data[0];",
+                  "    pm.expect(t).to.have.property('titulo');",
+                  "    pm.expect(t).to.have.property('estado');",
+                  "    pm.expect(t.prioridad).to.have.property('prioridad');",
+                  "    pm.expect(t.etiquetas).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('El estado es uno de los tres válidos', () => {",
+                  "    const validos = ['pendiente', 'en_progreso', 'completada'];",
+                  "    data.forEach(t => pm.expect(validos).to.include(t.estado));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /tareas — crear",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"titulo\": \"Maquetar el listado de tareas en Vue\",\n    \"descripcion\": \"Componente de tabla con filtros por estado y badges de prioridad.\",\n    \"fecha_vencimiento\": \"2026-09-15\",\n    \"prioridad_id\": 2,\n    \"etiquetas\": [1, 2]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/tareas",
+              "host": ["{{base_url}}"],
+              "path": ["tareas"]
+            },
+            "description": "Crea una tarea con prioridad y varias etiquetas.\n\n**Nota:** el endpoint NO acepta `estado`. Toda tarea nace como `pendiente` por el default de la migración; el estado solo se cambia vía PUT/PATCH. Si mandás `estado` acá, se ignora."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "",
+                  "const t = pm.response.json().data;",
+                  "",
+                  "pm.test('Guarda el id para los requests siguientes', () => {",
+                  "    pm.expect(t.id).to.be.a('number');",
+                  "    pm.collectionVariables.set('tarea_id', t.id);",
+                  "});",
+                  "",
+                  "pm.test('Nace en estado pendiente', () => {",
+                  "    pm.expect(t.estado).to.eql('pendiente');",
+                  "});",
+                  "",
+                  "pm.test('Asocia las 2 etiquetas enviadas', () => {",
+                  "    pm.expect(t.etiquetas).to.have.lengthOf(2);",
+                  "});",
+                  "",
+                  "pm.test('Asigna la prioridad MEDIA', () => {",
+                  "    pm.expect(t.prioridad.prioridad).to.eql('MEDIA');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /tareas/{id} — ver detalle",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tareas/{{tarea_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["tareas", "{{tarea_id}}"]
+            },
+            "description": "Trae la tarea creada en el request anterior."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const t = pm.response.json().data;",
+                  "",
+                  "pm.test('Es la tarea que creamos', () => {",
+                  "    pm.expect(String(t.id)).to.eql(pm.collectionVariables.get('tarea_id'));",
+                  "    pm.expect(t.titulo).to.include('Maquetar');",
+                  "});",
+                  "",
+                  "pm.test('La fecha viene en formato YYYY-MM-DD', () => {",
+                  "    pm.expect(t.fecha_vencimiento).to.match(/^\\d{4}-\\d{2}-\\d{2}$/);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT /tareas/{id} — editar completa",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"titulo\": \"Maquetar el listado de tareas en Vue (revisado)\",\n    \"descripcion\": \"Se suma paginación y ordenamiento por fecha de vencimiento.\",\n    \"estado\": \"en_progreso\",\n    \"fecha_vencimiento\": \"2026-09-20\",\n    \"prioridad_id\": 3,\n    \"etiquetas\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/tareas/{{tarea_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["tareas", "{{tarea_id}}"]
+            },
+            "description": "Actualiza todos los campos. Las etiquetas se sincronizan (sync), no se acumulan: pasar de [1,2] a [1,2,3] deja exactamente esas tres."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const t = pm.response.json().data;",
+                  "",
+                  "pm.test('Actualiza el estado a en_progreso', () => {",
+                  "    pm.expect(t.estado).to.eql('en_progreso');",
+                  "});",
+                  "",
+                  "pm.test('Sube la prioridad a ALTA', () => {",
+                  "    pm.expect(t.prioridad.prioridad).to.eql('ALTA');",
+                  "});",
+                  "",
+                  "pm.test('Sincroniza a 3 etiquetas (no duplica)', () => {",
+                  "    pm.expect(t.etiquetas).to.have.lengthOf(3);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /tareas/{id} — solo cambiar estado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"estado\": \"completada\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/tareas/{{tarea_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["tareas", "{{tarea_id}}"]
+            },
+            "description": "Actualización parcial: todas las reglas del UpdateTareaRequest usan `sometimes`, así que se puede mandar solo el campo que cambia.\n\nEste es el caso de uso del frontend cuando cambiás el estado desde el listado sin abrir el formulario completo."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const t = pm.response.json().data;",
+                  "",
+                  "pm.test('Cambia el estado a completada', () => {",
+                  "    pm.expect(t.estado).to.eql('completada');",
+                  "});",
+                  "",
+                  "pm.test('No pisa los demás campos', () => {",
+                  "    pm.expect(t.titulo).to.include('revisado');",
+                  "    pm.expect(t.prioridad.prioridad).to.eql('ALTA');",
+                  "    pm.expect(t.etiquetas).to.have.lengthOf(3);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE /tareas/{id} — eliminar",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tareas/{{tarea_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["tareas", "{{tarea_id}}"]
+            },
+            "description": "Elimina la tarea de prueba. Devuelve 204 sin body."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));",
+                  "",
+                  "pm.test('No devuelve body', () => {",
+                  "    pm.expect(pm.response.text()).to.be.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /tareas/{id} — confirmar que se borró",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tareas/{{tarea_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["tareas", "{{tarea_id}}"]
+            },
+            "description": "Cierra el ciclo: la tarea eliminada ya no existe."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));",
+                  "",
+                  "pm.test('Mensaje genérico, sin filtrar el nombre del modelo', () => {",
+                  "    pm.expect(pm.response.json().message).to.eql('Recurso no encontrado.');",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set('tarea_id', '');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Filtros",
+      "description": "Los filtros del listado, validados por IndexTareaRequest. Todos son opcionales y combinables.",
+      "item": [
+        {
+          "name": "Por estado",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tareas?estado=pendiente",
+              "host": ["{{base_url}}"],
+              "path": ["tareas"],
+              "query": [{ "key": "estado", "value": "pendiente" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Todas las tareas son pendientes', () => {",
+                  "    pm.response.json().data.forEach(t => pm.expect(t.estado).to.eql('pendiente'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Por prioridad",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tareas?prioridad_id=3",
+              "host": ["{{base_url}}"],
+              "path": ["tareas"],
+              "query": [{ "key": "prioridad_id", "value": "3" }]
+            },
+            "description": "prioridad_id=3 es ALTA."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Todas son de prioridad ALTA', () => {",
+                  "    pm.response.json().data.forEach(t => pm.expect(t.prioridad_id).to.eql(3));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Por rango de fechas de vencimiento",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tareas?vence_desde=2026-08-01&vence_hasta=2026-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["tareas"],
+              "query": [
+                { "key": "vence_desde", "value": "2026-08-01" },
+                { "key": "vence_hasta", "value": "2026-12-31" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Las fechas caen dentro del rango', () => {",
+                  "    pm.response.json().data.forEach(t => {",
+                  "        if (t.fecha_vencimiento) {",
+                  "            pm.expect(t.fecha_vencimiento >= '2026-08-01').to.be.true;",
+                  "            pm.expect(t.fecha_vencimiento <= '2026-12-31').to.be.true;",
+                  "        }",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Búsqueda por texto",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tareas?buscar=docker",
+              "host": ["{{base_url}}"],
+              "path": ["tareas"],
+              "query": [{ "key": "buscar", "value": "docker" }]
+            },
+            "description": "Busca en título y descripción."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Los resultados contienen el término', () => {",
+                  "    pm.response.json().data.forEach(t => {",
+                  "        const texto = (t.titulo + ' ' + t.descripcion).toLowerCase();",
+                  "        pm.expect(texto).to.include('docker');",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Combinado + paginado",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tareas?estado=completada&prioridad_id=3&per_page=5",
+              "host": ["{{base_url}}"],
+              "path": ["tareas"],
+              "query": [
+                { "key": "estado", "value": "completada" },
+                { "key": "prioridad_id", "value": "3" },
+                { "key": "per_page", "value": "5" }
+              ]
+            },
+            "description": "Varios filtros a la vez más paginación. `per_page` acepta entre 1 y 100."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Respeta ambos filtros', () => {",
+                  "    body.data.forEach(t => {",
+                  "        pm.expect(t.estado).to.eql('completada');",
+                  "        pm.expect(t.prioridad_id).to.eql(3);",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test('No devuelve más de 5 por página', () => {",
+                  "    pm.expect(body.data.length).to.be.at.most(5);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Validaciones y errores",
+      "description": "Los casos borde. Esta carpeta es la que conviene mostrar en la demo: prueba que el manejo global de errores devuelve JSON con mensajes en español y sin filtrar internals.",
+      "item": [
+        {
+          "name": "POST sin título → 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"descripcion\": \"Una tarea sin título no debería crearse.\",\n    \"prioridad_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/tareas",
+              "host": ["{{base_url}}"],
+              "path": ["tareas"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 Unprocessable Content', () => pm.response.to.have.status(422));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Señala el campo titulo', () => {",
+                  "    pm.expect(body.errors).to.have.property('titulo');",
+                  "});",
+                  "",
+                  "pm.test('El mensaje está en español', () => {",
+                  "    pm.expect(body.errors.titulo[0]).to.eql('El título es obligatorio.');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST con prioridad inexistente → 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"titulo\": \"Tarea con prioridad inválida\",\n    \"descripcion\": \"La prioridad 999 no existe en la tabla prioridades.\",\n    \"prioridad_id\": 999\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/tareas",
+              "host": ["{{base_url}}"],
+              "path": ["tareas"]
+            },
+            "description": "Valida la integridad referencial antes de llegar a la base."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 Unprocessable Content', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('Mensaje específico de prioridad', () => {",
+                  "    const errors = pm.response.json().errors;",
+                  "    pm.expect(errors.prioridad_id[0]).to.eql('La prioridad seleccionada no existe.');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST con etiquetas duplicadas → 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"titulo\": \"Tarea con etiquetas repetidas\",\n    \"descripcion\": \"La regla distinct impide mandar dos veces la misma etiqueta.\",\n    \"prioridad_id\": 1,\n    \"etiquetas\": [1, 1]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/tareas",
+              "host": ["{{base_url}}"],
+              "path": ["tareas"]
+            },
+            "description": "Sin la regla `distinct`, el sync de la pivote fallaría por clave duplicada."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 Unprocessable Content', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('Avisa de la etiqueta repetida', () => {",
+                  "    const body = pm.response.json();",
+                  "    const msg = JSON.stringify(body.errors);",
+                  "    pm.expect(msg).to.include('No se puede repetir la misma etiqueta.');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtro con estado inválido → 422",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tareas?estado=inventado",
+              "host": ["{{base_url}}"],
+              "path": ["tareas"],
+              "query": [{ "key": "estado", "value": "inventado" }]
+            },
+            "description": "Los query params del listado también se validan."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 Unprocessable Content', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('Enumera los estados válidos', () => {",
+                  "    const errors = pm.response.json().errors;",
+                  "    pm.expect(errors.estado[0]).to.include('pendiente, en_progreso o completada');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rango de fechas invertido → 422",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tareas?vence_desde=2026-12-31&vence_hasta=2026-01-01",
+              "host": ["{{base_url}}"],
+              "path": ["tareas"],
+              "query": [
+                { "key": "vence_desde", "value": "2026-12-31" },
+                { "key": "vence_hasta", "value": "2026-01-01" }
+              ]
+            },
+            "description": "La regla `after_or_equal` impide un rango imposible."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 Unprocessable Content', () => pm.response.to.have.status(422));",
+                  "",
+                  "pm.test('Explica que el rango está invertido', () => {",
+                  "    const errors = pm.response.json().errors;",
+                  "    pm.expect(errors.vence_hasta[0]).to.eql('La fecha hasta no puede ser anterior a la fecha desde.');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET tarea inexistente → 404",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tareas/999999",
+              "host": ["{{base_url}}"],
+              "path": ["tareas", "999999"]
+            },
+            "description": "El handler de bootstrap/app.php reemplaza el mensaje por defecto de Laravel, que expondría el nombre del modelo y el id."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));",
+                  "",
+                  "const body = pm.response.json();",
+                  "",
+                  "pm.test('Mensaje genérico en español', () => {",
+                  "    pm.expect(body.message).to.eql('Recurso no encontrado.');",
+                  "});",
+                  "",
+                  "pm.test('No filtra el namespace del modelo', () => {",
+                  "    pm.expect(JSON.stringify(body)).to.not.include('App\\\\Models');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET con id no numérico → 404",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/tareas/abc",
+              "host": ["{{base_url}}"],
+              "path": ["tareas", "abc"]
+            },
+            "description": "El `whereNumber('tarea')` de la ruta evita que 'abc' llegue al controller y reviente al castear a int. Devuelve 404 limpio, no 500."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404 y no 500', () => pm.response.to.have.status(404));",
+                  "",
+                  "pm.test('No es un error de servidor', () => {",
+                  "    pm.expect(pm.response.code).to.be.below(500);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
