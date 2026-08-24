@@ -3,48 +3,19 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Prioridad;
-use Illuminate\Http\Request;
+use App\Http\Resources\PrioridadResource;
+use App\Services\Catalogo\Contracts\CatalogoInterface;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
+/**
+ * Catálogo de prioridades. Sólo lectura: los valores los fija el ENUM.
+ */
 class PrioridadController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
+    public function __construct(private readonly CatalogoInterface $catalogo) {}
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function index(): AnonymousResourceCollection
     {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(Prioridad $prioridad)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Prioridad $prioridad)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Prioridad $prioridad)
-    {
-        //
+        return PrioridadResource::collection($this->catalogo->prioridades());
     }
 }

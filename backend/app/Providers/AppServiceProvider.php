@@ -15,6 +15,11 @@ class AppServiceProvider extends ServiceProvider
             \App\Services\Tarea\Contracts\TareaInterface::class,
             \App\Services\Tarea\TareaService::class
         );
+
+        $this->app->bind(
+            \App\Services\Catalogo\Contracts\CatalogoInterface::class,
+            \App\Services\Catalogo\CatalogoService::class
+        );
     }
 
     /**

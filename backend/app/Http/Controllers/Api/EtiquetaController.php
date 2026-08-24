@@ -3,48 +3,19 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Etiqueta;
-use Illuminate\Http\Request;
+use App\Http\Resources\EtiquetaResource;
+use App\Services\Catalogo\Contracts\CatalogoInterface;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
+/**
+ * Catálogo de etiquetas. Sólo lectura: los valores los fija el ENUM.
+ */
 class EtiquetaController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
+    public function __construct(private readonly CatalogoInterface $catalogo) {}
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function index(): AnonymousResourceCollection
     {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(Etiqueta $etiqueta)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Etiqueta $etiqueta)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Etiqueta $etiqueta)
-    {
-        //
+        return EtiquetaResource::collection($this->catalogo->etiquetas());
     }
 }
