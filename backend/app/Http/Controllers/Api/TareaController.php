@@ -3,49 +3,54 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Tarea;
+use App\Http\Requests\IndexTareaRequest;
 use App\Http\Requests\StoreTareaRequest;
 use App\Http\Requests\UpdateTareaRequest;
+use App\Http\Resources\TareaResource;
+use App\Services\Tarea\Contracts\TareaInterface;
+use App\Services\Tarea\DTOs\FiltroTareaData;
+use App\Services\Tarea\DTOs\TareaData;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class TareaController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    /** Se tipa la interfaz, no TareaService: el contenedor resuelve el bind. */
+    public function __construct(private readonly TareaInterface $tareas) {}
+
+    public function index(IndexTareaRequest $request): AnonymousResourceCollection
     {
-        //
+        return TareaResource::collection(
+            $this->tareas->listar(FiltroTareaData::fromRequest($request))
+        );
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StoreTareaRequest $request)
+    public function store(StoreTareaRequest $request): JsonResponse
     {
-        //
+        $tarea = $this->tareas->crear(TareaData::fromRequest($request));
+
+        return TareaResource::make($tarea)
+            ->response()
+            ->setStatusCode(Response::HTTP_CREATED);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Tarea $tarea)
+    public function show(int $id): TareaResource
     {
-        //
+        return TareaResource::make($this->tareas->verDetalle($id));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateTareaRequest $request, Tarea $tarea)
+    public function update(UpdateTareaRequest $request, int $id): TareaResource
     {
-        //
+        return TareaResource::make(
+            $this->tareas->actualizar($id, TareaData::fromRequest($request))
+        );
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Tarea $tarea)
+    public function destroy(int $id): Response
     {
-        //
+        $this->tareas->eliminar($id);
+
+        return response()->noContent();
     }
 }

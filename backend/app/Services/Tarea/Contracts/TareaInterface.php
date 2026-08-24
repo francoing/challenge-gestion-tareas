@@ -13,9 +13,6 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
  * El controller tipa esta interfaz y el contenedor inyecta la implementación
  * concreta (ver el bind en AppServiceProvider), de modo que la capa HTTP
  * nunca depende de TareaService.
- *
- * Los métodos devuelven modelos de dominio, no arrays: la serialización es
- * responsabilidad de los API Resources.
  */
 interface TareaInterface
 {
