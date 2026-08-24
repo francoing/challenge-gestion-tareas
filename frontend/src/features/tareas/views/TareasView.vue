@@ -4,19 +4,44 @@
   datos y handlers, y los reparte a los hijos, que quedan "tontos".
 -->
 <script setup>
+import TareaFormModal from '@/features/tareas/components/TareaFormModal.vue'
 import TareaTabla from '@/features/tareas/components/TareaTabla.vue'
 import { useTareas } from '@/features/tareas/composables/useTareas'
 
-const { tareas, meta, cargando, error, recargar } = useTareas()
+const {
+  tareas,
+  meta,
+  cargando,
+  error,
+  recargar,
+  prioridades,
+  etiquetas,
+  formAbierto,
+  guardando,
+  errorForm,
+  abrirFormulario,
+  cerrarFormulario,
+  guardarTarea,
+} = useTareas()
 </script>
 
 <template>
   <section>
-    <div class="mb-5 flex items-baseline justify-between">
-      <h2 class="text-base font-semibold text-slate-900">Tareas</h2>
-      <p v-if="meta" class="text-sm text-slate-500">
-        {{ meta.total }} {{ meta.total === 1 ? 'tarea' : 'tareas' }}
-      </p>
+    <div class="mb-5 flex items-center justify-between gap-4">
+      <div class="flex items-baseline gap-3">
+        <h2 class="text-base font-semibold text-slate-900">Tareas</h2>
+        <p v-if="meta" class="text-sm text-slate-500">
+          {{ meta.total }} {{ meta.total === 1 ? 'tarea' : 'tareas' }}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+        @click="abrirFormulario"
+      >
+        Nueva tarea
+      </button>
     </div>
 
     <!-- Cargando -->
@@ -45,5 +70,15 @@ const { tareas, meta, cargando, error, recargar } = useTareas()
     </p>
 
     <TareaTabla v-else :tareas="tareas" />
+
+    <TareaFormModal
+      :abierto="formAbierto"
+      :prioridades="prioridades"
+      :etiquetas="etiquetas"
+      :guardando="guardando"
+      :error="errorForm"
+      @cerrar="cerrarFormulario"
+      @guardar="guardarTarea"
+    />
   </section>
 </template>

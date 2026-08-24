@@ -15,12 +15,16 @@ export const useTareasStore = defineStore('tareas', () => {
   /** @type {import('vue').Ref<import('@/api/ApiError').ApiError|null>} */
   const error = ref(null)
 
+  /** Últimos filtros usados, para poder recargar con el mismo criterio. */
+  const ultimosFiltros = ref({})
+
   /**
    * Trae el listado desde el API.
    *
    * @param {object} filtros
    */
-  async function cargar(filtros = {}) {
+  async function cargar(filtros = ultimosFiltros.value) {
+    ultimosFiltros.value = filtros
     cargando.value = true
     error.value = null
 
@@ -39,5 +43,26 @@ export const useTareasStore = defineStore('tareas', () => {
     }
   }
 
-  return { tareas, meta, cargando, error, cargar }
+  /**
+   * Crea una tarea y recarga el listado.
+   *
+   * A diferencia de cargar(), acá el error NO se atrapa: el formulario
+   * necesita recibir el 422 para pintar los mensajes campo por campo.
+   *
+   * Se recarga en vez de insertar la tarea en el array porque el orden lo
+   * define el backend (por fecha de vencimiento, las sin fecha al final):
+   * agregarla al principio la mostraría en una posición que no le toca.
+   *
+   * @param   {object} payload
+   * @returns {Promise<object>} la tarea creada
+   */
+  async function crear(payload) {
+    const tarea = await tareaService.crear(payload)
+
+    await cargar()
+
+    return tarea
+  }
+
+  return { tareas, meta, cargando, error, ultimosFiltros, cargar, crear }
 })

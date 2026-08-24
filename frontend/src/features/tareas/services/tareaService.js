@@ -28,3 +28,19 @@ export async function listar(filtros = {}) {
   // Laravel envuelve el listado en { data: [...], links, meta }.
   return { tareas: data.data, meta: data.meta }
 }
+
+/**
+ * Crea una tarea. Responde 201 con la tarea ya persistida.
+ *
+ * No se manda `estado`: el backend lo rechaza a propósito y toda tarea
+ * nace en 'pendiente'.
+ *
+ * @param   {{titulo: string, descripcion: string, fecha_vencimiento: string|null,
+ *            prioridad_id: number, etiquetas: number[]}} payload
+ * @returns {Promise<object>} la tarea creada, con prioridad y etiquetas embebidas
+ */
+export async function crear(payload) {
+  const { data } = await http.post('/tareas', payload)
+
+  return data.data
+}
