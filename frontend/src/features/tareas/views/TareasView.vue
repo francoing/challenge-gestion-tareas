@@ -4,6 +4,7 @@
   datos y handlers, y los reparte a los hijos, que quedan "tontos".
 -->
 <script setup>
+import BaseModal from '@/common/components/BaseModal.vue'
 import TareaFormModal from '@/features/tareas/components/TareaFormModal.vue'
 import TareaTabla from '@/features/tareas/components/TareaTabla.vue'
 import { useTareas } from '@/features/tareas/composables/useTareas'
@@ -17,11 +18,17 @@ const {
   prioridades,
   etiquetas,
   formAbierto,
+  tareaEnEdicion,
   guardando,
   errorForm,
   abrirFormulario,
   cerrarFormulario,
   guardarTarea,
+  tareaAEliminar,
+  eliminando,
+  confirmarEliminacion,
+  cancelarEliminacion,
+  eliminarTarea,
 } = useTareas()
 </script>
 
@@ -35,10 +42,12 @@ const {
         </p>
       </div>
 
+      <!-- Con paréntesis a propósito: sin ellos Vue pasaría el MouseEvent
+           como primer argumento y el modal creería que es una edición. -->
       <button
         type="button"
         class="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
-        @click="abrirFormulario"
+        @click="abrirFormulario()"
       >
         Nueva tarea
       </button>
@@ -69,10 +78,11 @@ const {
       Todavía no hay tareas cargadas.
     </p>
 
-    <TareaTabla v-else :tareas="tareas" />
+    <TareaTabla v-else :tareas="tareas" @editar="abrirFormulario" @eliminar="confirmarEliminacion" />
 
     <TareaFormModal
       :abierto="formAbierto"
+      :tarea="tareaEnEdicion"
       :prioridades="prioridades"
       :etiquetas="etiquetas"
       :guardando="guardando"
@@ -80,5 +90,38 @@ const {
       @cerrar="cerrarFormulario"
       @guardar="guardarTarea"
     />
+
+    <!-- Confirmación de borrado: reusa BaseModal, no necesita componente propio. -->
+    <BaseModal
+      :abierto="Boolean(tareaAEliminar)"
+      titulo="Eliminar tarea"
+      :bloqueado="eliminando"
+      @cerrar="cancelarEliminacion"
+    >
+      <p class="text-sm text-slate-600">
+        ¿Seguro que querés eliminar
+        <span class="font-medium text-slate-900">«{{ tareaAEliminar?.titulo }}»</span>?
+        Esta acción no se puede deshacer.
+      </p>
+
+      <template #pie>
+        <button
+          type="button"
+          class="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+          :disabled="eliminando"
+          @click="cancelarEliminacion"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="rounded-md bg-rose-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-50"
+          :disabled="eliminando"
+          @click="eliminarTarea"
+        >
+          {{ eliminando ? 'Eliminando…' : 'Eliminar' }}
+        </button>
+      </template>
+    </BaseModal>
   </section>
 </template>

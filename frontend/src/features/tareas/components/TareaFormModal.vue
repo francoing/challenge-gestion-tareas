@@ -1,5 +1,7 @@
 <!--
-  Formulario de tarea dentro de un modal.
+  Formulario de tarea dentro de un modal. Sirve para alta y edición:
+  si llega la prop `tarea`, precarga sus valores y cambia los textos.
+
   Emite 'guardar' con el payload; quien lo usa decide qué hacer con él.
   Los errores de validación (422) llegan por prop y se pintan campo por campo.
 -->
@@ -7,9 +9,12 @@
 import { computed, ref, watch } from 'vue'
 
 import BaseModal from '@/common/components/BaseModal.vue'
+import { ESTADOS } from '@/common/estados'
 
 const props = defineProps({
   abierto: { type: Boolean, default: false },
+  /** Tarea a editar. null = alta. */
+  tarea: { type: Object, default: null },
   prioridades: { type: Array, default: () => [] },
   etiquetas: { type: Array, default: () => [] },
   guardando: { type: Boolean, default: false },
@@ -19,23 +24,41 @@ const props = defineProps({
 
 const emit = defineEmits(['cerrar', 'guardar'])
 
+const esEdicion = computed(() => Boolean(props.tarea))
+
 const FORMULARIO_VACIO = {
   titulo: '',
   descripcion: '',
   fecha_vencimiento: '',
   prioridad_id: '',
+  estado: 'pendiente',
   etiquetas: [],
 }
 
-const form = ref({ ...FORMULARIO_VACIO })
+const form = ref({ ...FORMULARIO_VACIO, etiquetas: [] })
 
-// Al abrir se limpia: si no, la próxima alta arrancaría con lo anterior.
-watch(
-  () => props.abierto,
-  (abierto) => {
-    if (abierto) form.value = { ...FORMULARIO_VACIO, etiquetas: [] }
-  },
-)
+/** Vuelca la tarea al formulario, o lo limpia si es un alta. */
+function precargar() {
+  if (!props.tarea) {
+    form.value = { ...FORMULARIO_VACIO, etiquetas: [] }
+
+    return
+  }
+
+  form.value = {
+    titulo: props.tarea.titulo,
+    descripcion: props.tarea.descripcion,
+    // El API devuelve null cuando no hay fecha; el input date necesita ''.
+    fecha_vencimiento: props.tarea.fecha_vencimiento ?? '',
+    prioridad_id: props.tarea.prioridad_id,
+    estado: props.tarea.estado,
+    // El API devuelve objetos; los checkboxes trabajan con ids.
+    etiquetas: (props.tarea.etiquetas ?? []).map((etiqueta) => etiqueta.id),
+  }
+}
+
+// Al abrir se precarga: si no, la próxima vez arrancaría con lo anterior.
+watch(() => props.abierto, (abierto) => abierto && precargar())
 
 /** Sólo los 422 traen errores por campo; el resto ya los mostró el toast. */
 const errores = computed(() => (props.error?.esValidacion ? props.error : null))
@@ -45,14 +68,20 @@ function errorDe(campo) {
 }
 
 function enviar() {
-  emit('guardar', {
+  const payload = {
     titulo: form.value.titulo,
     descripcion: form.value.descripcion,
     // El backend acepta null, pero un input date vacío devuelve ''.
     fecha_vencimiento: form.value.fecha_vencimiento || null,
     prioridad_id: form.value.prioridad_id,
     etiquetas: form.value.etiquetas,
-  })
+  }
+
+  // El estado sólo viaja al editar: en el alta el backend lo rechaza
+  // a propósito, porque toda tarea nace pendiente.
+  if (esEdicion.value) payload.estado = form.value.estado
+
+  emit('guardar', payload)
 }
 
 const claseCampo =
@@ -61,7 +90,12 @@ const claseCampoConError = 'border-rose-400 focus:border-rose-500 focus:ring-ros
 </script>
 
 <template>
-  <BaseModal :abierto="abierto" titulo="Nueva tarea" :bloqueado="guardando" @cerrar="emit('cerrar')">
+  <BaseModal
+    :abierto="abierto"
+    :titulo="esEdicion ? 'Editar tarea' : 'Nueva tarea'"
+    :bloqueado="guardando"
+    @cerrar="emit('cerrar')"
+  >
     <form id="form-tarea" class="space-y-4" @submit.prevent="enviar">
       <div>
         <label for="titulo" class="mb-1 block text-xs font-medium text-slate-700">Título</label>
@@ -118,6 +152,15 @@ const claseCampoConError = 'border-rose-400 focus:border-rose-500 focus:ring-ros
         </div>
       </div>
 
+      <!-- El estado sólo se edita; en el alta siempre nace pendiente. -->
+      <div v-if="esEdicion">
+        <label for="estado" class="mb-1 block text-xs font-medium text-slate-700">Estado</label>
+        <select id="estado" v-model="form.estado" :class="[claseCampo, errorDe('estado') && claseCampoConError]">
+          <option v-for="e in ESTADOS" :key="e.valor" :value="e.valor">{{ e.texto }}</option>
+        </select>
+        <p v-if="errorDe('estado')" class="mt-1 text-xs text-rose-600">{{ errorDe('estado') }}</p>
+      </div>
+
       <fieldset>
         <legend class="mb-1 block text-xs font-medium text-slate-700">
           Etiquetas <span class="font-normal text-slate-400">(podés elegir varias)</span>
@@ -135,7 +178,7 @@ const claseCampoConError = 'border-rose-400 focus:border-rose-500 focus:ring-ros
         <p v-if="errorDe('etiquetas')" class="mt-1 text-xs text-rose-600">{{ errorDe('etiquetas') }}</p>
       </fieldset>
 
-      <p class="text-xs text-slate-400">La tarea se crea en estado «Pendiente».</p>
+      <p v-if="!esEdicion" class="text-xs text-slate-400">La tarea se crea en estado «Pendiente».</p>
     </form>
 
     <template #pie>
@@ -153,7 +196,8 @@ const claseCampoConError = 'border-rose-400 focus:border-rose-500 focus:ring-ros
         class="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
         :disabled="guardando"
       >
-        {{ guardando ? 'Guardando…' : 'Crear tarea' }}
+        <template v-if="guardando">Guardando…</template>
+        <template v-else>{{ esEdicion ? 'Guardar cambios' : 'Crear tarea' }}</template>
       </button>
     </template>
   </BaseModal>

@@ -9,6 +9,8 @@ defineProps({
   tareas: { type: Array, required: true },
 })
 
+const emit = defineEmits(['editar', 'eliminar'])
+
 const PRIORIDADES = {
   ALTA: 'bg-rose-100 text-rose-800 ring-rose-200',
   MEDIA: 'bg-amber-100 text-amber-800 ring-amber-200',
@@ -35,6 +37,9 @@ function formatearFecha(fecha) {
           <th scope="col" class="px-4 py-3">Prioridad</th>
           <th scope="col" class="px-4 py-3">Etiquetas</th>
           <th scope="col" class="px-4 py-3 whitespace-nowrap">Vencimiento</th>
+          <th scope="col" class="px-4 py-3 text-right">
+            <span class="sr-only">Acciones</span>
+          </th>
         </tr>
       </thead>
 
@@ -73,6 +78,25 @@ function formatearFecha(fecha) {
 
           <td class="px-4 py-3 whitespace-nowrap text-slate-600">
             {{ formatearFecha(tarea.fecha_vencimiento) }}
+          </td>
+
+          <td class="px-4 py-3 text-right whitespace-nowrap">
+            <div class="inline-flex gap-1.5">
+              <button
+                type="button"
+                class="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                @click="emit('editar', tarea)"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                class="rounded-md border border-rose-200 px-2.5 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50"
+                @click="emit('eliminar', tarea)"
+              >
+                Eliminar
+              </button>
+            </div>
           </td>
         </tr>
       </tbody>

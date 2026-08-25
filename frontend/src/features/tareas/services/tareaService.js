@@ -44,3 +44,36 @@ export async function crear(payload) {
 
   return data.data
 }
+
+/**
+ * Actualiza una tarea completa desde el formulario de edición.
+ *
+ * Va con PUT porque el formulario manda todos los campos. El PATCH queda
+ * para los cambios parciales, como mover sólo el estado desde el listado.
+ *
+ * `etiquetas: []` quita todas: el backend distingue array vacío de
+ * clave ausente.
+ *
+ * @param   {number} id
+ * @param   {object} payload
+ * @returns {Promise<object>} la tarea actualizada
+ */
+export async function actualizar(id, payload) {
+  const { data } = await http.put(`/tareas/${id}`, payload)
+
+  return data.data
+}
+
+/**
+ * Elimina una tarea. El backend responde 204 sin cuerpo, así que no hay
+ * nada que devolver: si no lanzó, salió bien.
+ *
+ * Las filas del pivote las limpia la base por cascade; el catálogo de
+ * etiquetas no se toca.
+ *
+ * @param   {number} id
+ * @returns {Promise<void>}
+ */
+export async function eliminar(id) {
+  await http.delete(`/tareas/${id}`)
+}

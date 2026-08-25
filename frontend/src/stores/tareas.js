@@ -64,5 +64,38 @@ export const useTareasStore = defineStore('tareas', () => {
     return tarea
   }
 
-  return { tareas, meta, cargando, error, ultimosFiltros, cargar, crear }
+  /**
+   * Actualiza una tarea y recarga el listado.
+   *
+   * Como crear(), deja escapar el error para que el formulario pinte el 422.
+   * Se recarga porque editar la fecha de vencimiento cambia la posición de
+   * la tarea en el orden que define el backend.
+   *
+   * @param   {number} id
+   * @param   {object} payload
+   * @returns {Promise<object>} la tarea actualizada
+   */
+  async function actualizar(id, payload) {
+    const tarea = await tareaService.actualizar(id, payload)
+
+    await cargar()
+
+    return tarea
+  }
+
+  /**
+   * Elimina una tarea y recarga el listado.
+   *
+   * Se recarga en vez de sacarla del array para que el total y la
+   * paginación queden en lo que dice el backend, no en una cuenta local.
+   *
+   * @param {number} id
+   */
+  async function eliminar(id) {
+    await tareaService.eliminar(id)
+
+    await cargar()
+  }
+
+  return { tareas, meta, cargando, error, ultimosFiltros, cargar, crear, actualizar, eliminar }
 })
