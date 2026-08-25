@@ -29,6 +29,7 @@ const {
   confirmarEliminacion,
   cancelarEliminacion,
   eliminarTarea,
+  cambiarPagina,
 } = useTareas()
 </script>
 
@@ -41,9 +42,6 @@ const {
           {{ meta.total }} {{ meta.total === 1 ? 'tarea' : 'tareas' }}
         </p>
       </div>
-
-      <!-- Con paréntesis a propósito: sin ellos Vue pasaría el MouseEvent
-           como primer argumento y el modal creería que es una edición. -->
       <button
         type="button"
         class="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
@@ -53,8 +51,13 @@ const {
       </button>
     </div>
 
-    <!-- Cargando -->
-    <p v-if="cargando" class="rounded-lg border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">
+    <!-- Primera carga: todavía no hay nada que mostrar.
+         En las recargas (cambio de página, alta, borrado) NO se entra acá:
+         la tabla se mantiene en pantalla y sólo se atenúa. -->
+    <p
+      v-if="cargando && !tareas.length"
+      class="rounded-lg border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500"
+    >
       Cargando tareas…
     </p>
 
@@ -78,7 +81,22 @@ const {
       Todavía no hay tareas cargadas.
     </p>
 
-    <TareaTabla v-else :tareas="tareas" @editar="abrirFormulario" @eliminar="confirmarEliminacion" />
+    <!-- Durante una recarga la tabla queda visible pero atenuada: el usuario
+         no pierde el contexto y el paginador puede deshabilitarse a la vista.
+         aria-busy avisa a los lectores de pantalla que el contenido se está
+         actualizando. -->
+    <TareaTabla
+      v-else
+      :tareas="tareas"
+      :meta="meta"
+      :cargando="cargando"
+      :aria-busy="cargando"
+      class="transition-opacity duration-200"
+      :class="{ 'opacity-50': cargando }"
+      @cambiar="cambiarPagina"
+      @editar="abrirFormulario"
+      @eliminar="confirmarEliminacion"
+    />
 
     <TareaFormModal
       :abierto="formAbierto"

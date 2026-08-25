@@ -19,17 +19,41 @@ export const useTareasStore = defineStore('tareas', () => {
   const ultimosFiltros = ref({})
 
   /**
+   * ¿La página pedida quedó más allá de la última existente?
+   *
+   * Se exige lista vacía además de comparar los números: con total 0 el
+   * backend responde current_page 1 y last_page 1, que no es un error.
+   *
+   * @param {{tareas: object[], meta: {current_page: number, last_page: number}}} respuesta
+   */
+  function fueraDeRango({ tareas: lista, meta: paginacion }) {
+    return lista.length === 0 && paginacion.current_page > paginacion.last_page
+  }
+
+  /**
    * Trae el listado desde el API.
    *
    * @param {object} filtros
    */
   async function cargar(filtros = ultimosFiltros.value) {
-    ultimosFiltros.value = filtros
+    ultimosFiltros.value = { ...ultimosFiltros.value, ...filtros }
     cargando.value = true
     error.value = null
 
     try {
-      const respuesta = await tareaService.listar(filtros)
+      const respuesta = await tareaService.listar(ultimosFiltros.value)
+
+      // La página pedida puede haber dejado de existir: pasa al borrar el
+      // último ítem de la última página, o al filtrar y reducir el total.
+      // El backend no da error, devuelve 200 con la lista vacía, así que
+      // hay que detectarlo acá y caer a la última página válida.
+      //
+      // Recursión acotada a un salto: en la nueva petición current_page
+      // pasa a ser last_page, con lo que la condición ya no se cumple.
+      if (fueraDeRango(respuesta)) {
+        return await cargar({ page: respuesta.meta.last_page })
+      }
+
       tareas.value = respuesta.tareas
       meta.value = respuesta.meta
     } catch (e) {

@@ -6,11 +6,13 @@ import { storeToRefs } from 'pinia'
 import { onMounted, ref } from 'vue'
 
 import { useCatalogosStore } from '@/stores/catalogos'
+import { useNotificacionesStore } from '@/stores/notificaciones'
 import { useTareasStore } from '@/stores/tareas'
 
 export function useTareas() {
   const store = useTareasStore()
   const catalogos = useCatalogosStore()
+  const avisos = useNotificacionesStore()
 
   // storeToRefs mantiene la reactividad al desestructurar el state.
   const { tareas, meta, cargando, error } = storeToRefs(store)
@@ -71,6 +73,7 @@ export function useTareas() {
 
     try {
       await store.eliminar(tareaAEliminar.value.id)
+      avisos.exito(`Se eliminó «${tareaAEliminar.value.titulo}».`)
       tareaAEliminar.value = null
     } catch {
       // El listado queda como estaba y el diálogo se cierra igual:
@@ -93,8 +96,10 @@ export function useTareas() {
     try {
       if (tareaEnEdicion.value) {
         await store.actualizar(tareaEnEdicion.value.id, payload)
+        avisos.exito('Cambios guardados.')
       } else {
         await store.crear(payload)
+        avisos.exito('Tarea creada.')
       }
 
       formAbierto.value = false
@@ -104,6 +109,15 @@ export function useTareas() {
     } finally {
       guardando.value = false
     }
+  }
+  /**
+   * Cambia de página, siempre respetando límites y evitando efectos secundarios.
+   */
+  function cambiarPagina(p) {
+    if (!meta.value) return
+    if (p < 1 || p > meta.value.last_page) return
+
+    store.cargar({ page: p })
   }
 
   return {
@@ -130,5 +144,7 @@ export function useTareas() {
     confirmarEliminacion,
     cancelarEliminacion,
     eliminarTarea,
+    // paginación
+    cambiarPagina,
   }
 }

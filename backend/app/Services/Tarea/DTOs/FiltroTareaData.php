@@ -13,7 +13,7 @@ use Illuminate\Foundation\Http\FormRequest;
 class FiltroTareaData
 {
     /** Tamaño de página por defecto cuando el cliente no lo especifica. */
-    public const POR_PAGINA = 15;
+    public const POR_PAGINA = 5;
 
     private function __construct(
         public readonly ?string $estado,

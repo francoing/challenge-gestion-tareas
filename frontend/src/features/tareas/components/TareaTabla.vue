@@ -4,12 +4,15 @@
 -->
 <script setup>
 import EstadoBadge from '@/common/components/EstadoBadge.vue'
+import Paginador from '@/common/components/Paginador.vue'
 
 defineProps({
   tareas: { type: Array, required: true },
+  meta: { type: Object, default: null },
+  cargando: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['editar', 'eliminar'])
+const emit = defineEmits(['editar', 'eliminar', 'cambiar'])
 
 const PRIORIDADES = {
   ALTA: 'bg-rose-100 text-rose-800 ring-rose-200',
@@ -102,4 +105,14 @@ function formatearFecha(fecha) {
       </tbody>
     </table>
   </div>
+  <Paginador
+      v-if="meta"
+      :ultima-pagina="meta?.last_page"
+      :pagina-actual="meta?.current_page"
+      :total="meta?.total"
+      :desde="meta?.from"
+      :hasta="meta?.to"
+      @cambiar="emit('cambiar', $event)"
+      :deshabilitado="cargando"
+    />
 </template>
