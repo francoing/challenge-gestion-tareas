@@ -8,6 +8,7 @@ import BaseModal from '@/common/components/BaseModal.vue'
 import TareaFormModal from '@/features/tareas/components/TareaFormModal.vue'
 import TareaTabla from '@/features/tareas/components/TareaTabla.vue'
 import { useTareas } from '@/features/tareas/composables/useTareas'
+import TareaFiltros from '@/features/tareas/components/TareaFiltros.vue'
 
 const {
   tareas,
@@ -30,26 +31,36 @@ const {
   cancelarEliminacion,
   eliminarTarea,
   cambiarPagina,
+  filtros,
+  limpiarFiltros,
 } = useTareas()
 </script>
 
 <template>
   <section>
-    <div class="mb-5 flex items-center justify-between gap-4">
-      <div class="flex items-baseline gap-3">
-        <h2 class="text-base font-semibold text-slate-900">Tareas</h2>
-        <p v-if="meta" class="text-sm text-slate-500">
-          {{ meta.total }} {{ meta.total === 1 ? 'tarea' : 'tareas' }}
-        </p>
-      </div>
-      <button
-        type="button"
-        class="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
-        @click="abrirFormulario()"
-      >
-        Nueva tarea
-      </button>
+    <div class="mb-4 flex items-baseline gap-3">
+      <h2 class="text-base font-semibold text-slate-900">Tareas</h2>
+      <p v-if="meta" class="text-sm text-slate-500">
+        {{ meta.total }} {{ meta.total === 1 ? 'tarea' : 'tareas' }}
+      </p>
     </div>
+
+    <TareaFiltros
+      v-model="filtros"
+      :prioridades="prioridades"
+      :deshabilitado="cargando"
+      @limpiar="limpiarFiltros"
+    >
+      <template #acciones>
+        <button
+          type="button"
+          class="w-full rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+          @click="abrirFormulario()"
+        >
+          Nueva tarea
+        </button>
+      </template>
+    </TareaFiltros>
 
     <!-- Primera carga: todavía no hay nada que mostrar.
          En las recargas (cambio de página, alta, borrado) NO se entra acá:

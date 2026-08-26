@@ -3,11 +3,12 @@
 //
 
 import { storeToRefs } from 'pinia'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch} from 'vue'
 
 import { useCatalogosStore } from '@/stores/catalogos'
 import { useNotificacionesStore } from '@/stores/notificaciones'
 import { useTareasStore } from '@/stores/tareas'
+
 
 export function useTareas() {
   const store = useTareasStore()
@@ -21,6 +22,24 @@ export function useTareas() {
   const formAbierto = ref(false)
   const guardando = ref(false)
   const tareaEnEdicion = ref(null)
+  const filtros = ref({
+    estado: '',
+    prioridad_id: '',
+    vence_desde: '',
+    vence_hasta: '',
+    buscar: '',
+  })
+
+  function limpiarFiltros() {
+    filtros.value = {
+      estado: '',
+      prioridad_id: '',
+      vence_desde: '',
+      vence_hasta: '',
+      buscar: '',
+    }
+  }
+
   /** Error del formulario, separado del error del listado. */
   const errorForm = ref(null)
 
@@ -120,6 +139,12 @@ export function useTareas() {
     store.cargar({ page: p })
   }
 
+  async function aplicarFiltros(filtros) {
+    await store.cargar(filtros)
+  }
+
+  watch(() => filtros.value.estado, () => aplicarFiltros(filtros.value))
+
   return {
     // listado
     tareas,
@@ -146,5 +171,9 @@ export function useTareas() {
     eliminarTarea,
     // paginación
     cambiarPagina,
+    // filtros
+    filtros,
+    aplicarFiltros,
+    limpiarFiltros,
   }
 }

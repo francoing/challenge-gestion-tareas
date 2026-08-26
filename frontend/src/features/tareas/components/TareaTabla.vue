@@ -5,6 +5,7 @@
 <script setup>
 import EstadoBadge from '@/common/components/EstadoBadge.vue'
 import Paginador from '@/common/components/Paginador.vue'
+import TareaFiltros from './TareaFiltros.vue'
 
 defineProps({
   tareas: { type: Array, required: true },
@@ -12,7 +13,7 @@ defineProps({
   cargando: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['editar', 'eliminar', 'cambiar'])
+const emit = defineEmits(['editar', 'eliminar', 'cambiar', 'limpiar'])
 
 const PRIORIDADES = {
   ALTA: 'bg-rose-100 text-rose-800 ring-rose-200',
@@ -30,8 +31,16 @@ function formatearFecha(fecha) {
 }
 </script>
 
+  
+
 <template>
-  <div class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+  <div v-if="tareas.length === 0" class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <p class="px-4 py-10 text-center text-sm text-slate-500">
+      Todavía no hay tareas cargadas.
+    </p>
+  </div>
+
+  <div v-else class="overflow-x-auto rounded-lg border border-slate-200 bg-white">
     <table class="min-w-full divide-y divide-slate-200 text-sm">
       <thead class="bg-slate-50">
         <tr class="text-left text-xs font-medium uppercase tracking-wide text-slate-500">
