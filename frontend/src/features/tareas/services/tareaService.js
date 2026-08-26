@@ -65,6 +65,23 @@ export async function actualizar(id, payload) {
 }
 
 /**
+ * Cambia sólo el estado de una tarea, desde el listado.
+ *
+ * Va con PATCH y no con PUT: todas las reglas de UpdateTareaRequest usan
+ * 'sometimes', así que mandar únicamente `estado` deja el resto intacto.
+ * Con PUT habría que reenviar todos los campos para no pisarlos.
+ *
+ * @param   {number} id
+ * @param   {'pendiente'|'en_progreso'|'completada'} estado
+ * @returns {Promise<object>} la tarea actualizada, con prioridad y etiquetas
+ */
+export async function cambiarEstado(id, estado) {
+  const { data } = await http.patch(`/tareas/${id}`, { estado })
+
+  return data.data
+}
+
+/**
  * Elimina una tarea. El backend responde 204 sin cuerpo, así que no hay
  * nada que devolver: si no lanzó, salió bien.
  *

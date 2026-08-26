@@ -5,6 +5,7 @@
 import { storeToRefs } from 'pinia'
 import { onMounted, ref, watch} from 'vue'
 
+import { buscarEstado } from '@/common/estados'
 import { useCatalogos } from '@/features/tareas/composables/useCatalogos'
 import { useNotificacionesStore } from '@/stores/notificaciones'
 import { useTareasStore } from '@/stores/tareas'
@@ -77,6 +78,40 @@ export function useTareas() {
     formAbierto.value = false
     tareaEnEdicion.value = null
     errorForm.value = null
+  }
+
+  /**
+   * IDs con un cambio de estado en vuelo.
+   *
+   * Es un Set y no un solo id porque el usuario puede tocar varias filas
+   * seguidas sin esperar: cada una se deshabilita por su cuenta en lugar de
+   * bloquear toda la tabla.
+   */
+  const estadosEnCurso = ref(new Set())
+
+  /**
+   * Cambia el estado de una tarea desde el listado, sin abrir el formulario.
+   *
+   * El error no se propaga: no hay campos que pintar, el toast global ya
+   * avisó, y el select vuelve solo al estado real porque su valor lo manda
+   * el prop, no el DOM.
+   *
+   * @param {object} tarea
+   * @param {'pendiente'|'en_progreso'|'completada'} estado
+   */
+  async function cambiarEstado(tarea, estado) {
+    if (estadosEnCurso.value.has(tarea.id)) return
+
+    estadosEnCurso.value.add(tarea.id)
+
+    try {
+      await store.cambiarEstado(tarea.id, estado)
+      avisos.exito(`«${tarea.titulo}» pasó a ${buscarEstado(estado).texto.toLowerCase()}.`)
+    } catch {
+      // Sin acción: la fila mantiene el estado que tenía.
+    } finally {
+      estadosEnCurso.value.delete(tarea.id)
+    }
   }
 
   /** Tarea pendiente de confirmar borrado. null = sin confirmación abierta. */
@@ -175,6 +210,9 @@ export function useTareas() {
     abrirFormulario,
     cerrarFormulario,
     guardarTarea,
+    // cambio de estado desde el listado
+    estadosEnCurso,
+    cambiarEstado,
     // eliminación
     tareaAEliminar,
     eliminando,

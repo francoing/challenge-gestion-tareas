@@ -3,7 +3,7 @@
   y no sabe de dónde salieron.
 -->
 <script setup>
-import EstadoBadge from '@/common/components/EstadoBadge.vue'
+import EstadoSelect from '@/common/components/EstadoSelect.vue'
 import Paginador from '@/common/components/Paginador.vue'
 import TareaFiltros from './TareaFiltros.vue'
 
@@ -11,9 +11,11 @@ defineProps({
   tareas: { type: Array, required: true },
   meta: { type: Object, default: null },
   cargando: { type: Boolean, default: false },
+  /** IDs con un cambio de estado en vuelo, para deshabilitar sólo esas filas. */
+  estadosEnCurso: { type: Set, default: () => new Set() },
 })
 
-const emit = defineEmits(['editar', 'eliminar', 'cambiar', 'limpiar'])
+const emit = defineEmits(['editar', 'eliminar', 'cambiar', 'cambiar-estado', 'limpiar'])
 
 const PRIORIDADES = {
   ALTA: 'bg-rose-100 text-rose-800 ring-rose-200',
@@ -63,7 +65,11 @@ function formatearFecha(fecha) {
           </td>
 
           <td class="px-4 py-3">
-            <EstadoBadge :estado="tarea.estado" />
+            <EstadoSelect
+              :estado="tarea.estado"
+              :deshabilitado="estadosEnCurso.has(tarea.id)"
+              @cambiar="emit('cambiar-estado', tarea, $event)"
+            />
           </td>
 
           <td class="px-4 py-3">

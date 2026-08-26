@@ -108,6 +108,42 @@ export const useTareasStore = defineStore('tareas', () => {
   }
 
   /**
+   * Cambia el estado de una tarea desde el listado.
+   *
+   * A diferencia de crear/actualizar, acá NO se recarga siempre. El backend
+   * ordena por fecha de vencimiento e id, no por estado, así que cambiarlo
+   * no mueve la fila de lugar: alcanza con reemplazarla en el array y se
+   * evita el parpadeo de recargar la tabla entera en una acción que el
+   * usuario repite seguido.
+   *
+   * La excepción es tener el filtro por estado activo: ahí la tarea puede
+   * haber dejado de pertenecer al listado (filtrando 'pendiente' y pasándola
+   * a 'completada' tiene que desaparecer), y además cambia el total. En ese
+   * caso sí hay que volver a preguntarle al backend.
+   *
+   * @param   {number} id
+   * @param   {'pendiente'|'en_progreso'|'completada'} estado
+   * @returns {Promise<object>} la tarea actualizada
+   */
+  async function cambiarEstado(id, estado) {
+    const tarea = await tareaService.cambiarEstado(id, estado)
+
+    if (ultimosFiltros.value.estado) {
+      await cargar()
+
+      return tarea
+    }
+
+    const indice = tareas.value.findIndex((item) => item.id === id)
+
+    if (indice !== -1) {
+      tareas.value[indice] = tarea
+    }
+
+    return tarea
+  }
+
+  /**
    * Elimina una tarea y recarga el listado.
    *
    * Se recarga en vez de sacarla del array para que el total y la
@@ -121,5 +157,16 @@ export const useTareasStore = defineStore('tareas', () => {
     await cargar()
   }
 
-  return { tareas, meta, cargando, error, ultimosFiltros, cargar, crear, actualizar, eliminar }
+  return {
+    tareas,
+    meta,
+    cargando,
+    error,
+    ultimosFiltros,
+    cargar,
+    crear,
+    actualizar,
+    cambiarEstado,
+    eliminar,
+  }
 })

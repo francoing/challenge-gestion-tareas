@@ -26,6 +26,8 @@ const {
   abrirFormulario,
   cerrarFormulario,
   guardarTarea,
+  estadosEnCurso,
+  cambiarEstado,
   tareaAEliminar,
   eliminando,
   confirmarEliminacion,
@@ -102,10 +104,12 @@ const {
       :tareas="tareas"
       :meta="meta"
       :cargando="cargando"
+      :estados-en-curso="estadosEnCurso"
       :aria-busy="cargando"
       class="transition-opacity duration-200"
       :class="{ 'opacity-50': cargando }"
       @cambiar="cambiarPagina"
+      @cambiar-estado="cambiarEstado"
       @editar="abrirFormulario"
       @eliminar="confirmarEliminacion"
     />
