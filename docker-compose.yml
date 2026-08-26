@@ -1,0 +1,92 @@
+#   docker compose up --build
+#
+#   API      http://localhost:8000/api
+#   Frontend http://localhost:5173
+#   MySQL    localhost:3307  (usuario gestion / gestion)
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: gestion-tareas-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: gestion_tareas
+      MYSQL_USER: gestion
+      MYSQL_PASSWORD: gestion
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      # 3307 en el host: el 3306 suele estar tomado por un MySQL local.
+      - '3307:3306'
+    volumes:
+      - mysql-datos:/var/lib/mysql
+    healthcheck:
+      # El backend espera a que esto pase, no a que el contenedor arranque:
+      # MySQL tarda varios segundos en aceptar conexiones.
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-uroot', '-proot']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  backend:
+    build:
+      context: ./backend
+    container_name: gestion-tareas-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      # Estas variables ganan sobre el .env: Laravel carga el archivo con el
+      # loader inmutable, que no pisa lo que ya está en el entorno. Por eso
+      # el .env local puede seguir apuntando a Laragon sin molestar.
+      APP_ENV: local
+      APP_DEBUG: 'true'
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: '3306'
+      DB_DATABASE: gestion_tareas
+      DB_USERNAME: gestion
+      DB_PASSWORD: gestion
+    volumes:
+      - ./backend:/var/www/html
+      # Volumen propio para vendor: el bind mount de arriba taparía el
+      # que se instaló durante el build.
+      - backend-vendor:/var/www/html/vendor
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: gestion-tareas-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      # Mismo puerto que 'php artisan serve', para que VITE_API_URL sirva
+      # con Docker y sin Docker. Si tenés artisan serve corriendo, bajalo.
+      - '8000:80'
+    volumes:
+      - ./backend:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: gestion-tareas-frontend
+    restart: unless-stopped
+    depends_on:
+      - nginx
+    environment:
+      # La URL la resuelve el navegador del host, no el contenedor:
+      # por eso es localhost y no 'nginx'.
+      VITE_API_URL: http://localhost:8000/api
+    ports:
+      - '5173:5173'
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+
+volumes:
+  mysql-datos:
+  backend-vendor:
+  frontend-node-modules:

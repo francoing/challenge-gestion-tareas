@@ -10,6 +10,7 @@ import TareaTabla from '@/features/tareas/components/TareaTabla.vue'
 import { useTareas } from '@/features/tareas/composables/useTareas'
 import TareaFiltros from '@/features/tareas/components/TareaFiltros.vue'
 
+
 const {
   tareas,
   meta,

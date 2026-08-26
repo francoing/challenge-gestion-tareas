@@ -54,9 +54,9 @@ class TareaCrudTest extends TestCase
 
         $this->getJson('/api/tareas')
             ->assertOk()
-            ->assertJsonCount(15, 'data')          // FiltroTareaData::POR_PAGINA
+            ->assertJsonCount(5, 'data')          // FiltroTareaData::POR_PAGINA
             ->assertJsonPath('meta.total', 20)
-            ->assertJsonPath('meta.per_page', 15);
+            ->assertJsonPath('meta.per_page', 5);
     }
 
     public function test_las_tareas_sin_fecha_de_vencimiento_quedan_al_final(): void

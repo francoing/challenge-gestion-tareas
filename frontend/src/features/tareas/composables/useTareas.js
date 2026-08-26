@@ -5,19 +5,19 @@
 import { storeToRefs } from 'pinia'
 import { onMounted, ref, watch} from 'vue'
 
-import { useCatalogosStore } from '@/stores/catalogos'
+import { useCatalogos } from '@/features/tareas/composables/useCatalogos'
 import { useNotificacionesStore } from '@/stores/notificaciones'
 import { useTareasStore } from '@/stores/tareas'
 
 
 export function useTareas() {
   const store = useTareasStore()
-  const catalogos = useCatalogosStore()
+  const catalogos = useCatalogos()
   const avisos = useNotificacionesStore()
 
   // storeToRefs mantiene la reactividad al desestructurar el state.
   const { tareas, meta, cargando, error } = storeToRefs(store)
-  const { prioridades, etiquetas } = storeToRefs(catalogos)
+  const { prioridades, etiquetas } = catalogos
 
   const formAbierto = ref(false)
   const guardando = ref(false)
@@ -43,7 +43,17 @@ export function useTareas() {
   /** Error del formulario, separado del error del listado. */
   const errorForm = ref(null)
 
-  onMounted(() => store.cargar())
+  onMounted(() => {
+    store.cargar()
+
+    // Los catálogos se piden al montar porque el filtro de prioridad está
+    // en pantalla desde el arranque, no sólo dentro del modal.
+    //
+    // El catch evita un unhandled rejection: a diferencia de store.cargar(),
+    // catalogos.cargar() no atrapa sus errores. El toast global ya avisó,
+    // y un catálogo vacío no rompe el resto de la pantalla.
+    catalogos.cargar()
+  })
 
   /**
    * Abre el modal. Sin argumento es un alta; con una tarea, una edición.
@@ -54,9 +64,11 @@ export function useTareas() {
     tareaEnEdicion.value = tarea
     errorForm.value = null
     formAbierto.value = true
-    // Se piden acá y no al montar: si el usuario nunca abre el formulario,
-    // no se gastan dos requests. El store los cachea para la próxima.
-    catalogos.cargar()
+
+    // Red de seguridad: normalmente ya se cargaron al montar, y el store
+    // corta la llamada si los tiene. Sólo hace algo si la carga inicial
+    // falló y el usuario abre el formulario después.
+    catalogos.cargar().catch(() => {})
   }
 
   function cerrarFormulario() {
