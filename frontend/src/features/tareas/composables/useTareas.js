@@ -1,9 +1,8 @@
 // Composable de la feature tareas: concentra estado y lógica para que
 // los componentes sólo rendericen.
-//
 
 import { storeToRefs } from 'pinia'
-import { onMounted, ref, watch} from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 
 import { buscarEstado } from '@/common/estados'
 import { useCatalogos } from '@/features/tareas/composables/useCatalogos'
@@ -16,7 +15,6 @@ export function useTareas() {
   const catalogos = useCatalogos()
   const avisos = useNotificacionesStore()
 
-  // storeToRefs mantiene la reactividad al desestructurar el state.
   const { tareas, meta, cargando, error } = storeToRefs(store)
   const { prioridades, etiquetas } = catalogos
 
@@ -186,11 +184,40 @@ export function useTareas() {
     store.cargar({ page: p })
   }
 
-  async function aplicarFiltros(filtros) {
-    await store.cargar(filtros)
+  /** Cuánto se espera después de la última tecla antes de pedir al backend. */
+  const ESPERA_TEXTO_MS = 350
+
+  let temporizador = null
+
+  /**
+   * Pide el listado con los filtros actuales, siempre desde la página 1.
+   *
+   * El reset es obligatorio: si estás en la página 4 y filtrás por algo que
+   * devuelve 2 páginas, pedir la 4 trae una lista vacía.
+   */
+  function aplicarFiltros() {
+    clearTimeout(temporizador)
+
+    store.cargar({ ...filtros.value, page: 1 })
   }
 
-  watch(() => filtros.value.estado, () => aplicarFiltros(filtros.value))
+  // TareaFiltros emite un objeto nuevo en cada cambio, así que observar la
+  // referencia alcanza
+  //
+  // Sólo el texto se difiere, para no disparar un request por tecla. Los
+  // selects y las fechas son un click y van al instante
+  watch(filtros, (nuevo, viejo) => {
+    if (nuevo.buscar !== viejo.buscar) {
+      clearTimeout(temporizador)
+      temporizador = setTimeout(aplicarFiltros, ESPERA_TEXTO_MS)
+
+      return
+    }
+
+    aplicarFiltros()
+  })
+
+  onUnmounted(() => clearTimeout(temporizador))
 
   return {
     // listado

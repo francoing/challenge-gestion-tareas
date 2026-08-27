@@ -15,10 +15,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // firstOrCreate y no factory(): el entrypoint de Docker corre
+        // 'migrate --seed' en cada arranque, y el email es único.
+        User::firstOrCreate(
+            ['email' => 'test@example.com'],
+            ['name' => 'Test User', 'password' => 'password'],
+        );
 
         // El orden importa: TareaSeeder necesita los catálogos ya sembrados
         // para resolver prioridad_id y los ids de las etiquetas.

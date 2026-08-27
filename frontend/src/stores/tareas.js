@@ -57,8 +57,6 @@ export const useTareasStore = defineStore('tareas', () => {
       tareas.value = respuesta.tareas
       meta.value = respuesta.meta
     } catch (e) {
-      // El toast global ya lo disparó el interceptor de http.js.
-      // Acá sólo se guarda para que la vista pueda ofrecer "reintentar".
       error.value = e
       tareas.value = []
       meta.value = null

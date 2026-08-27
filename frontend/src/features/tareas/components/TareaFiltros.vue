@@ -16,7 +16,7 @@ const props = defineProps({
   /** Objeto de filtros: { estado, prioridad_id, vence_desde, vence_hasta, buscar } */
   modelValue: { type: Object, required: true },
   prioridades: { type: Array },
-  deshabilitado: { type: Boolean, default: false },
+  //deshabilitado: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update:modelValue', 'limpiar'])

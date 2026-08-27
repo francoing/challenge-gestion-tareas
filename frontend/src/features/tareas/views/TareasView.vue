@@ -51,7 +51,6 @@ const {
     <TareaFiltros
       v-model="filtros"
       :prioridades="prioridades"
-      :deshabilitado="cargando"
       @limpiar="limpiarFiltros"
     >
       <template #acciones>
